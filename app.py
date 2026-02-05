@@ -108,11 +108,30 @@ def dash(request: Request, seller:int):
 
 @app.post("/web/check")
 def web_check(request: Request, file: UploadFile):
-    r = check_risk(file)
+
+    db = get_db()
+
+    # ---- MANDATORY GATE ----
+    o = db.execute("SELECT count(*) c FROM orders").fetchone()["c"]
+    r = db.execute("SELECT count(*) c FROM returns").fetchone()["c"]
+
+    if o == 0 or r == 0:
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {"request": request,
+             "result": [{"order":"-",
+                         "risk":"-",
+                         "action":"Please upload today orders & returns"}],
+             "seller": 1}
+        )
+
+    result = check_risk(file)
+
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "result": r, "seller": 1}
+        {"request": request, "result": result, "seller": 1}
     )
+
 
 @app.post("/web/upload-orders")
 def web_up_orders(request: Request, file: UploadFile, seller_id: int = Form()):
