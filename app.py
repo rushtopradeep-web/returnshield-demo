@@ -114,3 +114,25 @@ async def web_check(request: Request, file: UploadFile):
         {"request": request, "result": r, "seller": 1}
     )
 
+@app.get("/register")
+def reg_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@app.post("/login")
+def do_login(request: Request, email: str = Form(), password: str = Form()):
+    db = get_db()
+    u = db.execute("SELECT id,password FROM sellers WHERE email=?",
+                   (email,)).fetchone()
+
+    if not u:
+        return {"error":"user not found"}
+
+    if not verify(password, u["password"]):
+        return {"error":"wrong password"}
+
+    # redirect to dashboard
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "seller": u["id"]}
+    )
