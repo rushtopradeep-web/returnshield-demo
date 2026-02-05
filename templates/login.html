@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="box">
+<h3>Seller Login</h3>
+
+<form action="/login" method="post">
+Email:<br>
+<input name="email"><br>
+Password:<br>
+<input name="password" type="password"><br><br>
+<button class="btn">Login</button>
+</form>
+
+<a href="/register">Register</a>
+</div>
+{% endblock %}
