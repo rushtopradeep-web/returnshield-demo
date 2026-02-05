@@ -30,7 +30,26 @@
 {% if result %}
 <div class="box">
 <h3>Result</h3>
-<pre>{{result}}</pre>
+
+<table border="1" width="100%" style="border-collapse:collapse">
+<tr style="background:#eee">
+<th>Order ID</th>
+<th>Risk</th>
+<th>Action</th>
+</tr>
+
+{% for r in result %}
+<tr style="background:{% if r.risk=='HIGH' %}#ffcccc{% else %}#ccffcc{% endif %}">
+<td>{{r.order}}</td>
+<td>{{r.risk}}</td>
+<td>{{r.action}}</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+{% endif %}
+
 </div>
 {% endif %}
 
