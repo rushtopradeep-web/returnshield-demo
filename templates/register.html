@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="box">
+<h3>Seller Registration</h3>
+
+<form action="/register" method="post">
+Email:<br>
+<input name="email"><br>
+
+Password:<br>
+<input name="password" type="password"><br>
+
+State:<br>
+<select name="state">
+<option>UP</option>
+<option>DL</option>
+<option>MH</option>
+<option>HR</option>
+<option>RJ</option>
+<option>KA</option>
+<option>TN</option>
+<option>GJ</option>
+</select><br><br>
+
+<button class="btn">Register</button>
+</form>
+
+</div>
+{% endblock %}
