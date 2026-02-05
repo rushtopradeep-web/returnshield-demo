@@ -3,6 +3,12 @@ from database import get_db, init_db
 from auth import hash_pw, verify, reset_token, send_reset
 import pandas as pd, hashlib
 
+from fastapi.templating import Jinja2Templates
+from fastapi.requests import Request
+
+templates = Jinja2Templates(directory="templates")
+
+
 app = FastAPI()
 init_db()
 
@@ -88,3 +94,23 @@ def check_risk(file: UploadFile):
             })
 
     return result
+
+@app.get("/login")
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/dashboard/{seller}")
+def dash(request: Request, seller:int):
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "seller": seller}
+    )
+
+@app.post("/web/check")
+async def web_check(request: Request, file: UploadFile):
+    r = await check_risk(file)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "result": r, "seller": 1}
+    )
+
