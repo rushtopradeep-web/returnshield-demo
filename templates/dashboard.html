@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="box">
+<h3>Upload FK Orders</h3>
+<form action="/web/upload-orders" method="post" enctype="multipart/form-data">
+<input type="file" name="file">
+<input type="hidden" name="seller_id" value="{{seller}}">
+<button class="btn">Upload Orders</button>
+</form>
+</div>
+
+<div class="box">
+<h3>Upload FK Returns</h3>
+<form action="/web/upload-returns" method="post" enctype="multipart/form-data">
+<input type="file" name="file">
+<input type="hidden" name="seller_id" value="{{seller}}">
+<button class="btn">Upload Returns</button>
+</form>
+</div>
+
+<div class="box">
+<h3>Check Risk</h3>
+<form action="/web/check" method="post" enctype="multipart/form-data">
+<input type="file" name="file">
+<button class="btn">Check</button>
+</form>
+</div>
+
+{% if result %}
+<div class="box">
+<h3>Result</h3>
+<pre>{{result}}</pre>
+</div>
+{% endif %}
+
+{% endblock %}
