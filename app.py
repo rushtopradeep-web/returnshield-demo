@@ -107,11 +107,27 @@ def dash(request: Request, seller:int):
     )
 
 @app.post("/web/check")
-async def web_check(request: Request, file: UploadFile):
-    r = await check_risk(file)
+def web_check(request: Request, file: UploadFile):
+    r = check_risk(file)
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, "result": r, "seller": 1}
+    )
+
+@app.post("/web/upload-orders")
+def web_up_orders(request: Request, file: UploadFile, seller_id: int = Form()):
+    upload_orders(file, seller_id)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "seller": seller_id, "result": "Orders Uploaded"}
+    )
+
+@app.post("/web/upload-returns")
+def web_up_returns(request: Request, file: UploadFile, seller_id: int = Form()):
+    upload_returns(file, seller_id)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "seller": seller_id, "result": "Returns Uploaded"}
     )
 
 @app.get("/register")
