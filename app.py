@@ -171,3 +171,23 @@ def do_login(request: Request, email: str = Form(), password: str = Form()):
         "dashboard.html",
         {"request": request, "seller": u["id"]}
     )
+    import io
+from fastapi.responses import StreamingResponse
+import pandas as pd
+
+@app.post("/web/export")
+def export_excel(file: UploadFile):
+
+    data = check_risk(file)
+    df = pd.DataFrame(data)
+
+    stream = io.BytesIO()
+    df.to_excel(stream, index=False)
+    stream.seek(0)
+
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition":"attachment; filename=risk_report.xlsx"}
+    )
+
