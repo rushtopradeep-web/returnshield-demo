@@ -1,17 +1,13 @@
 from fastapi import FastAPI, UploadFile, Form
-import pandas as pd
-import hashlib
+from database import get_db, init_db
+from auth import hash_pw, verify, reset_token, send_reset
+import pandas as pd, hashlib
 
 app = FastAPI()
-
-DB = {
-    "orders": {},
-    "returns": {},
-    "global": {}
-}
+init_db()
 
 def make_hash(name, pin, state):
-    raw = str(name).strip() + str(pin).strip() + str(state).strip()
+    raw = str(name)+str(pin)+str(state)
     return hashlib.sha256(raw.encode()).hexdigest()
 
 @app.get("/")
@@ -21,65 +17,74 @@ def home():
         "message": "Contribute your FK orders and returns to unlock risk insights."
     }
 
+@app.post("/register")
+def register(email: str = Form(), password: str = Form(), state: str = Form()):
+    db = get_db()
+    db.execute("INSERT INTO sellers(email,password,state) VALUES(?,?,?)",
+               (email, hash_pw(password), state))
+    db.commit()
+    return {"status": "registered"}
+
 @app.post("/upload-orders")
-def upload_orders(file: UploadFile):
+def upload_orders(file: UploadFile, seller_id: int = Form()):
     df = pd.read_csv(file.file, encoding="latin1")
+    db = get_db()
 
     for _, r in df.iterrows():
-        oid = str(r.get("Order Id"))
-        DB["orders"][oid] = {
-            "name": r.get("Buyer name"),
-            "pin": r.get("PIN Code"),
-            "state": r.get("State")
-        }
-
-    return {"status": "orders stored", "count": len(DB["orders"])}
-
+        db.execute("""INSERT INTO orders VALUES(?,?,?,?,?)""",
+                   (seller_id, r.get("Order Id"),
+                    r.get("Buyer name"),
+                    r.get("PIN Code"),
+                    r.get("State")))
+    db.commit()
+    return {"status": "orders stored"}
 
 @app.post("/upload-returns")
-def upload_returns(file: UploadFile):
+def upload_returns(file: UploadFile, seller_id: int = Form()):
     df = pd.read_csv(file.file, encoding="latin1")
+    db = get_db()
 
     for _, r in df.iterrows():
-        oid = str(r.get("Order ID"))
+        oid = r.get("Order ID")
+        db.execute("INSERT INTO returns VALUES(?,?)",(seller_id, oid))
 
-        if oid in DB["orders"]:
-            o = DB["orders"][oid]
-            hid = make_hash(o["name"], o["pin"], o["state"])
+        # contribute to global network
+        o = db.execute("SELECT name,pin,state FROM orders WHERE order_id=?",
+                       (oid,)).fetchone()
+        if o:
+            h = make_hash(o["name"],o["pin"],o["state"])
+            db.execute("INSERT INTO global_hash VALUES(?,1)",(h,))
 
-            DB["global"][hid] = DB["global"].get(hid, 0) + 1
-
-    return {"status": "returns processed", "customers": len(DB["global"])}
-
+    db.commit()
+    return {"status": "returns processed"}
 
 @app.post("/check-risk")
 def check_risk(file: UploadFile):
     df = pd.read_csv(file.file, encoding="latin1")
+    db = get_db()
 
     result = []
-
     for _, r in df.iterrows():
-        oid = str(r.get("Order Id"))
-        name = r.get("Buyer name")
-        pin = r.get("PIN Code")
-        state = r.get("State")
+        h = make_hash(r.get("Buyer name"),
+                      r.get("PIN Code"),
+                      r.get("State"))
 
-        hid = make_hash(name, pin, state)
-
-        score = DB["global"].get(hid, 0) * 20
-
-        risk = "LOW"
-        action = "ALLOW COD"
+        score = len(db.execute(
+            "SELECT * FROM global_hash WHERE hash=?",(h,)).fetchall()) * 20
 
         if score >= 40:
-            risk = "HIGH"
-            action = "Prepaid Only – Mandatory + Packing Video – Mandatory"
-
-        result.append({
-            "order": oid,
-            "risk": risk,
-            "message": "Suggested: High Risk Order" if risk=="HIGH" else "OK",
-            "action": action
-        })
+            result.append({
+                "order": r.get("Order Id"),
+                "risk": "HIGH",
+                "message": "Suggested: High Risk Order",
+                "action": "Prepaid Only – Mandatory + Packing Video – Mandatory"
+            })
+        else:
+            result.append({
+                "order": r.get("Order Id"),
+                "risk": "LOW",
+                "message": "OK",
+                "action": "ALLOW COD"
+            })
 
     return result
